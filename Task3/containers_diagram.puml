@@ -1,0 +1,59 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+SHOW_LEGEND()
+
+title C4 Level 2 – Интернет-банк и АБС (Открытие депозитов)
+
+Person(customer, "Клиент", "Пользователь интернет-банка и сайта")
+Person(employee, "Сотрудник банка", "Работает в АБС через десктоп-клиент")
+Person(callcenter, "Менеджер кол-центра", "Обрабатывает заявки из сайта")
+
+System(callcenter_system, "Система кол-центра", "Принимает заявки с сайта и передаёт их в АБС")
+System(sms_gateway, "СМС-шлюз", "Отправляет сообщения клиентам")
+System_Ext(telecom, "Телеком-оператор", "Доставляет СМС клиентам")
+
+System_Boundary(ib, "Интернет-банк") {
+    Container(ib_app, "Интернет-банк (ядро + веб-клиент)", "ASP.NET MVC 4.5", "Позволяет клиенту просматривать ставки и подавать заявки на депозиты/кредиты")
+    Container(ib_db, "База данных интернет-банка", "MS SQL", "Хранит данные о клиентах и заявках")
+    Container(orch, "Orchestrator Service", "C# / .NET 6", "Обрабатывает заявки, взаимодействует с АБС через Integration Layer, получает ставки и управляет процессом")
+    Container(orch_db, "БД Orchestrator", "PostgreSQL", "Хранит данные о заявках и процессах")
+    Container(orch_cache, "Кэш Orchestrator", "Redis", "Кэширует ставки и временные данные")
+}
+
+System_Boundary(abs, "АБС") {
+    Container(abs_desktop, "Десктоп-клиент АБС", "Delphi", "Рабочее место сотрудника банка")
+    Container(abs_il, "Integration Layer", "Java / .NET", "Единая точка входа для запросов к АБС")
+    Container(abs_core, "ABS Core Logic", "PL/SQL", "Основная бизнес-логика АБС")
+    Container(abs_db, "База данных АБС", "Oracle", "Данные по счетам, депозитам и кредитам")
+    Container(rates, "Rates Service", "Java", "Хранение и выдача ставок по депозитам и кредитам")
+    Container(rates_db, "База данных ставок", "PostgreSQL", "Хранит ставки депозитов и кредитов")
+}
+
+' Взаимодействие клиента с интернет-банком
+Rel(customer, ib_app, "Использует")
+Rel(ib_app, orch, "Отправка заявок, запрос ставок")
+Rel(ib_app, ib_db, "Чтение/запись")
+Rel(orch, orch_db, "Чтение/запись")
+Rel(orch, orch_cache, "Чтение/запись")
+Rel(orch, abs_il, "REST/JSON", "Взаимодействие с АБС")
+
+' Взаимодействие внутри АБС
+Rel(abs_il, abs_core, "Вызовы бизнес-операций")
+Rel(abs_core, abs_db, "Чтение/запись данных")
+Rel(abs_il, rates, "Запросы ставок")
+Rel(rates, rates_db, "Чтение/запись ставок")
+
+' Десктоп-клиент только через Integration Layer
+Rel(employee, abs_desktop, "Работает с клиентами и депозитами")
+Rel(abs_desktop, abs_il, "Запросы к АБС")
+
+' Взаимодействие кол-центра
+Rel(callcenter, callcenter_system, "Работает с заявками с сайта")
+Rel(callcenter_system, abs_il, "Передаёт заявки в АБС")
+
+' СМС-уведомления
+Rel(orch, sms_gateway, "Отправка СМС через шлюз")
+Rel(sms_gateway, telecom, "Передача СМС")
+Rel(telecom, customer, "Доставка СМС")
+
+@enduml
