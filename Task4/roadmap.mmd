@@ -1,0 +1,25 @@
+---
+config:
+  theme: default
+---
+gantt
+    dateFormat  YYYY-MM-DD
+    title Roadmap MVP (6 месяцев)
+    excludes    weekends
+    section ABS
+    T1 Разработка сервиса котировок (Rates Service)           :t1, 2025-09-01, 4w
+    T2 Модуль выгрузки ставок на SFTP                         :t2, after t1 t5, 2w
+    T3 Интеграционный слой (Integration Layer)                :t3, after t1 t4, 4w
+    T4 Доработка Core Logic (PL/SQL)                          :t4, 2025-09-01, 4w
+    T5 Доработка десктоп-клиента АБС                          :t5, after t3, 3w
+    section Интернет-банк
+    T6 Разработка Orchestration Service                       :t6, 2025-09-01, 4w
+    T7 Интеграция Orchestration Service с Integration Layer   :t7, after t3 t6, 3w
+    T8 Интеграция Orchestration Service с SMS-шлюзом          :t8, after t6 t9, 2w
+    T9 Обновление веб-клиента интернет-банка                  :t9, after t6, 2w
+    section Сайт
+    T10 Интеграция сайта с системой кол-центра                :t10, after t12 t11, 2w
+    T11 Разработка формы заявок на сайте                      :t11, 2025-09-01, 3w
+    section Кол-центр
+    T12 API кол-центра для приёма заявок                      :t12, 2025-09-01, 2w
+    T13 Интеграция системы кол-центра с АБС                   :t13, after t3, 3w

@@ -1,0 +1,29 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+SHOW_LEGEND()
+
+title C4 Level 2 – Получение ставок кол-центрами
+
+Person(partner_callcenter, "Менеджер партнерского кол-центра", "Обрабатывает заявки из сайта")
+
+System(callcenter_system, "Система кол-центра", "Принимает заявки с сайта и передаёт их в АБС")
+
+System_Boundary(abs, "АБС") {
+    Container(abs_il, "Integration Layer", "Java / .NET", "Единая точка входа для запросов к АБС")
+    Container(rates, "Rates Service", "Java", "Хранение и выдача ставок по депозитам и кредитам")
+    Container(rates_db, "База данных ставок", "PostgreSQL", "Хранит ставки депозитов и кредитов")
+}
+
+System(smtp_server, "SMPT сервер", "Хранилище ставок")
+
+' Взаимодействие внутри АБС
+Rel(abs_il, rates, "Получение ставок")
+Rel(rates, rates_db, "Чтение/запись ставок")
+Rel(rates, smtp_server, "Загрузка файлов со ставками")
+
+
+' Взаимодействие кол-центра
+Rel(partner_callcenter, smtp_server, "Получение ставок")
+Rel(callcenter_system, abs_il, "Получение ставок")
+
+@enduml

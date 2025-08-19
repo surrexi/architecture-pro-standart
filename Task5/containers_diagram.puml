@@ -1,0 +1,78 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+SHOW_LEGEND()
+
+title C4 Level 2 – Интернет-банк, сайт, АБС и кредитный процесс
+
+Person(customer, "Клиент", "Пользователь интернет-банка и сайта")
+Person(employee, "Сотрудник банка", "Работает в АБС через десктоп-клиент")
+
+System(sms_gateway, "СМС-шлюз", "Отправляет сообщения клиентам")
+System_Ext(telecom, "Телеком-оператор", "Доставляет СМС клиентам")
+System_Ext(bki, "Бюро кредитных историй", "Внешняя система, API для проверки кредитной истории")
+
+System_Boundary(site, "Сайт банка") {
+    Container(site_web, "Веб-сайт", "Java/Spring MVC или PHP", "Позволяет клиенту просматривать ставки и подавать заявки на депозиты и кредиты")
+}
+
+System_Boundary(ib, "Интернет-банк") {
+    Container(ib_app, "Интернет-банк (ядро + веб/моб. клиент)", "ASP.NET MVC / React Native", "Просмотр ставок, подача заявок на депозиты и кредиты")
+    Container(ib_db, "База данных интернет-банка", "MS SQL", "Данные о клиентах и заявках")
+    Container(orch, "Orchestrator Service", "C# / .NET 6", "Обрабатывает заявки (депозиты/кредиты), взаимодействует с АБС и Кредитным конвейером")
+    Container(orch_db, "БД Orchestrator", "PostgreSQL", "Хранение заявок и процессов")
+    Container(orch_cache, "Кэш Orchestrator", "Redis", "Кэш ставок и временных данных")
+}
+
+System_Boundary(abs, "АБС") {
+    Container(abs_desktop, "Десктоп-клиент АБС", "Delphi", "Рабочее место сотрудника")
+    Container(abs_il, "Integration Layer", "Java / .NET", "Единая точка входа для запросов к АБС")
+    Container(abs_core, "ABS Core Logic", "PL/SQL", "Бизнес-логика по депозитам и кредитам")
+    Container(abs_db, "База данных АБС", "Oracle", "Данные по клиентам, счетам, депозитам, кредитам")
+    Container(rates, "Rates Service", "Java", "Хранение и выдача ставок")
+    Container(rates_db, "База ставок", "PostgreSQL", "Ставки депозитов и кредитов")
+}
+
+System_Boundary(credit_conv, "Кредитный конвейер") {
+    Container(conv_core, "BPM Engine (Camunda)", "Java", "Обработка заявок на кредиты")
+    Container(conv_db, "База данных конвейера", "Oracle", "Хранение заявок и статусов")
+}
+
+System_Boundary(scoring, "Скоринг") {
+    Container(score_api, "Scoring API", "Python/Flask", "Расчёт скорингового балла")
+    Container(score_db, "База скоринга", "PostgreSQL", "Хранение скоринговых данных")
+}
+
+' --- Взаимодействие клиентов ---
+Rel(customer, site_web, "Использует")
+Rel(customer, ib_app, "Использует")
+Rel(site_web, orch, "Отправка заявок, запрос ставок")
+Rel(ib_app, orch, "Отправка заявок, запрос ставок")
+Rel(ib_app, ib_db, "Чтение/запись данных")
+Rel(orch, orch_db, "Чтение/запись")
+Rel(orch, orch_cache, "Чтение/запись")
+
+' --- Депозиты ---
+Rel(orch, abs_il, "REST/JSON", "Взаимодействие с АБС для депозитов")
+Rel(abs_il, rates, "Запрос ставок")
+Rel(rates, rates_db, "Чтение/запись ставок")
+
+' --- Кредиты ---
+Rel(orch, conv_core, "Передача заявок на кредиты")
+Rel(conv_core, score_api, "Запрос скоринга")
+Rel(score_api, bki, "Запрос кредитной истории", "REST API")
+Rel(score_api, score_db, "Чтение/запись данных")
+Rel(conv_core, abs_il, "Суточный обмен данными по кредитам")
+Rel(abs_il, abs_core, "Вызовы операций")
+Rel(abs_core, abs_db, "Чтение/запись данных")
+
+' --- Десктоп-клиент ---
+Rel(employee, abs_desktop, "Работает с клиентами, депозитами, кредитами")
+Rel(abs_desktop, abs_il, "Запросы к АБС")
+
+' --- СМС ---
+Rel(orch, sms_gateway, "Отправка СМС (депозиты/кредиты)")
+Rel(conv_core, sms_gateway, "Отправка СМС о статусах кредитных заявок")
+Rel(sms_gateway, telecom, "Передача СМС")
+Rel(telecom, customer, "Доставка СМС")
+
+@enduml
